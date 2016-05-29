@@ -40,27 +40,29 @@ public class PowerSimulation extends Application {
     int powerBandStart = 5000;
     int powerBandEnd = 7800;
     double[] powerBand = new double[maxRPM];
+    double[] optimalPower = new double[maxRPM];
     double afRatio = 14;
     double myafRatio;
 
+    //problem is that on the first loop of each for loop, powerBand[j] is set to i, it should be set to powerBand[j - 1]
     public void powerBandMaker(double[] powerBand) {
         int j = minRPM;
-        for (int i = minRPM; j < powerBandStart; i = (int) Math.pow(j, 1.3) / 700 + 100) {
+        for (double i = (double) Math.pow(j, 1.4) / 700 + 13; j <= powerBandStart; i = (double) Math.pow(j, 1.4) / 700 + 13) {
             powerBand[j] = i;
             //System.out.println(i);
             j++;
         }
-        for (int i = powerBandStart; j < powerBandEnd; i = (int) Math.pow(j / 120 - 52, 2) * -1 + 350) {
+        for (double i = (double) Math.pow(j / 135 - 46, 2) * -1 + 320; j <= powerBandEnd; i = (double) Math.pow(j / 135 - 46, 2) * -1 + 320) {
             powerBand[j] = i;
             //System.out.println(i);
             j++;
         }
-        for (int i = powerBandEnd; j < maxRPM; i = (int) (j * -0.237113402062 + 2012.57)) {
+        for (double i = (double) (j * -0.237113402062 + 2022.57); j < maxRPM; i = (double) (j * -0.237113402062 + 2022.57)) {
             powerBand[j] = i;
             //System.out.println(i);
             j++;
         }
-
+        optimalPower = powerBand;
         return;
     }
 
@@ -82,6 +84,11 @@ public class PowerSimulation extends Application {
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("JavaFX Welcome");
+
+        // HBox
+        HBox hb = new HBox();
+        hb.setPadding(new Insets(15, 12, 15, 12));
+        hb.setSpacing(10);
 
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.TOP_LEFT);
@@ -125,6 +132,18 @@ public class PowerSimulation extends Application {
         final Text actiontarget = new Text();
         grid.add(actiontarget, 0, 4);
 
+        //defining the axes
+        final NumberAxis xAxis = new NumberAxis();
+        final NumberAxis yAxis = new NumberAxis();
+        yAxis.setLabel("HP");
+        xAxis.setLabel("RPM");
+        //creating the chart
+        final LineChart<Number, Number> lineChart
+                = new LineChart<Number, Number>(xAxis, yAxis);
+
+        lineChart.setTitle("Power Output");
+
+        //defining a series
         btn.setOnAction(e -> {
             airValue = Integer.parseInt(airTextField.getText());
             fuelValue = Integer.parseInt(fuelTextField.getText());
@@ -132,12 +151,17 @@ public class PowerSimulation extends Application {
             System.out.println("air : " + airValue);
             System.out.println("fuel : " + fuelValue);
             System.out.println("rpm : " + rpmValue);
+
             myafRatio = airValue / fuelValue;
             System.out.println(afRatio - myafRatio);
+
             double diff = 1 - 1 / Math.abs(afRatio - myafRatio);
+
             powerBandMaker(powerBand);
+
             System.out.println("my diff ratio : " + myafRatio);
             System.out.println("diff multiplier : " + diff);
+
             for (int i = 0; i < powerBand.length; i++) {
                 if (diff == Double.NEGATIVE_INFINITY) {
                     diff = 0;
@@ -146,39 +170,28 @@ public class PowerSimulation extends Application {
                 System.out.println(powerBand[i]);
             }
 
+            //populating the series with data
+            XYChart.Series series1 = new XYChart.Series();
+            series1.setName("Horse Power @ RPM");
+            for (int i = 0; i < maxRPM; i++) {
+                series1.getData().add(new XYChart.Data(i, powerBand[i]));
+            }
+            
+            XYChart.Series series2 = new XYChart.Series();
+            series2.setName("Optimal Power Output");
+            for (int i = 0; i < maxRPM; i++) {
+                series2.getData().add(new XYChart.Data(i, optimalPower[i]));
+            }
+
+            lineChart.getData().addAll(series1, series2);
         });
 
-        //defining the axes
-        final NumberAxis xAxis = new NumberAxis();
-        final NumberAxis yAxis = new NumberAxis();
-        xAxis.setLabel("Number of Month");
-        //creating the chart
-        final LineChart<Number, Number> lineChart
-                = new LineChart<Number, Number>(xAxis, yAxis);
-
-        lineChart.setTitle("Power Output");
-        //defining a series
-        XYChart.Series series = new XYChart.Series();
-        series.setName("My portfolio");
-        //populating the series with data
-        series.getData().add(new XYChart.Data(1, 23));
-        series.getData().add(new XYChart.Data(2, 14));
-        series.getData().add(new XYChart.Data(3, 15));
-        series.getData().add(new XYChart.Data(4, 24));
-        series.getData().add(new XYChart.Data(5, 34));
-        series.getData().add(new XYChart.Data(6, 36));
-        series.getData().add(new XYChart.Data(7, 22));
-        series.getData().add(new XYChart.Data(8, 45));
-        series.getData().add(new XYChart.Data(9, 43));
-        series.getData().add(new XYChart.Data(10, 17));
-        series.getData().add(new XYChart.Data(11, 29));
-        series.getData().add(new XYChart.Data(12, 25));
-
-        Scene scene1 = new Scene(grid, 800, 450);
-        Scene scene2 = new Scene(lineChart, 800, 450);
+        Scene scene1 = new Scene(hb, 800, 450);
+        hb.getChildren().add(grid);
+        hb.getChildren().add(lineChart);
         primaryStage.setScene(scene1);
-        primaryStage.setScene(scene2);
         primaryStage.show();
+        
     }
 
     /**
