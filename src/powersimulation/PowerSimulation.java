@@ -32,9 +32,7 @@ public class PowerSimulation extends Application {
 
     int airValue;
     int fuelValue;
-    int rpmValue;
     //static variables
-    int gearCount = 1;
     int maxRPM = 8450;
     int minRPM = 1000;
     int powerBandStart = 5000;
@@ -44,7 +42,7 @@ public class PowerSimulation extends Application {
     double afRatio = 14;
     double myafRatio;
 
-    //problem is that on the first loop of each for loop, powerBand[j] is set to i, it should be set to powerBand[j - 1]
+    //builds the optimal power band, that will be manipulated on button press
     public void powerBandMaker(double[] powerBand) {
         int j = minRPM;
         for (double i = (double) Math.pow(j, 1.4) / 700 + 13; j <= powerBandStart; i = (double) Math.pow(j, 1.4) / 700 + 13) {
@@ -62,8 +60,7 @@ public class PowerSimulation extends Application {
             //System.out.println(i);
             j++;
         }
-        optimalPower = powerBand;
-        return;
+        System.arraycopy(powerBand, 0, optimalPower, 0, powerBand.length);
     }
 
     public void numOnly(TextField field) {
@@ -103,31 +100,28 @@ public class PowerSimulation extends Application {
         grid.setGridLinesVisible(false);
 
         Label air = new Label("Air");
-        grid.add(air, 0, 1);
+        grid.add(air, 0, 2);
 
         TextField airTextField = new TextField();
-        grid.add(airTextField, 1, 1);
+        grid.add(airTextField, 1, 2);
         numOnly(airTextField);
 
         Label fuel = new Label("Fuel");
-        grid.add(fuel, 0, 2);
+        grid.add(fuel, 0, 3);
 
         TextField fuelTextField = new TextField();
-        grid.add(fuelTextField, 1, 2);
+        grid.add(fuelTextField, 1, 3);
         numOnly(fuelTextField);
-
-        Label shiftRPM = new Label("Shift RPM");
-        grid.add(shiftRPM, 0, 3);
-
-        TextField shiftRPMTextField = new TextField();
-        grid.add(shiftRPMTextField, 1, 3);
-        numOnly(shiftRPMTextField);
 
         Button btn = new Button("Launch");
         HBox hbBtn = new HBox(10);
         hbBtn.setAlignment(Pos.BOTTOM_RIGHT);
         hbBtn.getChildren().add(btn);
         grid.add(hbBtn, 1, 4);
+
+        Button remove = new Button(" Clear ");
+
+        grid.add(remove, 1, 4);
 
         final Text actiontarget = new Text();
         grid.add(actiontarget, 0, 4);
@@ -147,10 +141,8 @@ public class PowerSimulation extends Application {
         btn.setOnAction(e -> {
             airValue = Integer.parseInt(airTextField.getText());
             fuelValue = Integer.parseInt(fuelTextField.getText());
-            rpmValue = Integer.parseInt(shiftRPMTextField.getText());
             System.out.println("air : " + airValue);
             System.out.println("fuel : " + fuelValue);
-            System.out.println("rpm : " + rpmValue);
 
             myafRatio = airValue / fuelValue;
             System.out.println(afRatio - myafRatio);
@@ -170,13 +162,16 @@ public class PowerSimulation extends Application {
                 System.out.println(powerBand[i]);
             }
 
+            //clearing data on the graph
+            lineChart.getData().remove((lineChart.getData().size()), 0);
+
             //populating the series with data
             XYChart.Series series1 = new XYChart.Series();
             series1.setName("Horse Power @ RPM");
             for (int i = 0; i < maxRPM; i++) {
                 series1.getData().add(new XYChart.Data(i, powerBand[i]));
             }
-            
+
             XYChart.Series series2 = new XYChart.Series();
             series2.setName("Optimal Power Output");
             for (int i = 0; i < maxRPM; i++) {
@@ -186,12 +181,18 @@ public class PowerSimulation extends Application {
             lineChart.getData().addAll(series1, series2);
         });
 
+        remove.setOnAction(e -> {
+            while (!lineChart.getData().isEmpty()) {
+                lineChart.getData().remove(0);
+            }
+        });
+
         Scene scene1 = new Scene(hb, 800, 450);
         hb.getChildren().add(grid);
         hb.getChildren().add(lineChart);
         primaryStage.setScene(scene1);
         primaryStage.show();
-        
+
     }
 
     /**
